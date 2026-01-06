@@ -1,0 +1,69 @@
+# UK Snow Nowcast Configuration
+# All tuneable parameters - no hardcoded values in code
+
+location:
+  # Default location (Kent)
+  latitude: 51.2787
+  longitude: 1.0803
+  name: "Canterbury, Kent"
+
+# Data source configuration
+data_sources:
+  open_meteo:
+    enabled: true
+    base_url: "https://api.open-meteo.com/v1/forecast"
+    update_interval_minutes: 15
+    # No API key required
+
+  environment_agency:
+    enabled: true
+    base_url: "https://environment.data.gov.uk/flood-monitoring"
+    update_interval_minutes: 15
+    # No API key required
+    search_radius_km: 50
+
+  met_office_datahub:
+    enabled: true
+    base_url: "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"
+    api_key: "eyJ4NXQjUzI1NiI6Ik5XVTVZakUxTkRjeVl6a3hZbUl4TkdSaFpqSmpOV1l6T1dGaE9XWXpNMk0yTWpRek5USm1OVEE0TXpOaU9EaG1NVFJqWVdNellXUm1ZalUyTTJJeVpBPT0iLCJraWQiOiJnYXRld2F5X2NlcnRpZmljYXRlX2FsaWFzIiwidHlwIjoiSldUIiwiYWxnIjoiUlMyNTYifQ==.eyJzdWIiOiJsdW1iaW5ndG9uQGljbG91ZC5jb21AY2FyYm9uLnN1cGVyIiwiYXBwbGljYXRpb24iOnsib3duZXIiOiJsdW1iaW5ndG9uQGljbG91ZC5jb20iLCJ0aWVyUXVvdGFUeXBlIjpudWxsLCJ0aWVyIjoiVW5saW1pdGVkIiwibmFtZSI6InNpdGVfc3BlY2lmaWMtMjA2NWYyODMtNmVmZC00NmJkLThhNDYtMGViZTExMzJlZGRjIiwiaWQiOjM0NTExLCJ1dWlkIjoiMGZhOGZhZDQtMDRiZi00YTQ0LTkxNjQtMGJmODVjMDIwMTI0In0sImlzcyI6Imh0dHBzOlwvXC9hcGktbWFuYWdlci5hcGktbWFuYWdlbWVudC5tZXRvZmZpY2UuY2xvdWQ6NDQzXC9vYXV0aDJcL3Rva2VuIiwidGllckluZm8iOnsid2RoX3NpdGVfc3BlY2lmaWNfZnJlZSI6eyJ0aWVyUXVvdGFUeXBlIjoicmVxdWVzdENvdW50IiwiZ3JhcGhRTE1heENvbXBsZXhpdHkiOjAsImdyYXBoUUxNYXhEZXB0aCI6MCwic3RvcE9uUXVvdGFSZWFjaCI6dHJ1ZSwic3Bpa2VBcnJlc3RMaW1pdCI6MCwic3Bpa2VBcnJlc3RVbml0Ijoic2VjIn19LCJrZXl0eXBlIjoiUFJPRFVDVElPTiIsInN1YnNjcmliZWRBUElzIjpbeyJzdWJzY3JpYmVyVGVuYW50RG9tYWluIjoiY2FyYm9uLnN1cGVyIiwibmFtZSI6IlNpdGVTcGVjaWZpY0ZvcmVjYXN0IiwiY29udGV4dCI6Ilwvc2l0ZXNwZWNpZmljXC92MCIsInB1Ymxpc2hlciI6IkphZ3Vhcl9DSSIsInZlcnNpb24iOiJ2MCIsInN1YnNjcmlwdGlvblRpZXIiOiJ3ZGhfc2l0ZV9zcGVjaWZpY19mcmVlIn1dLCJ0b2tlbl90eXBlIjoiYXBpS2V5IiwiaWF0IjoxNzY3NzA1NTc5LCJqdGkiOiI5OWY1OTRjNS01MDkzLTQ2M2MtOTMwZC1jOGIzYTE1MDJhZTYifQ==.crNY85RVvxpKi5cAgibW2HLFUPVYpSZlJs9m_d-KxdGjs4pXeAHUGYNM3LI5wjeIbs3wCYmSYbAlYegxNGAATOjYEJ0dfxJMD6fS-IwFnBwqLWmPM6uSgLht0Z8lX8zRIgotP1f40n6odnCB0Rw1sTY8Yx3lOWh2civHihyCA7b-hKCeeQ5SGuZaIB7CPs9Kh0hmz0pnqjDnjj-LsAQcoaGFlEHxqjr2Qgn6L6EJBV5fFTvKWPer7hbnDOfLIdupvXxbuKzYQZZYfLoJlLWzePtnVnX0cfLl4yPdc2qag4Kms21g_Gsqnp-i51gdr1jjNhKkDYYq6uXNXiurlk6m1w=="
+    update_interval_minutes: 60
+    # Free tier: 360 calls/day
+
+# Snow detection thresholds
+snow_detection:
+  # Temperature thresholds (Celsius)
+  max_temp_for_snow: 2.0
+  optimal_snow_temp_max: 0.5
+  optimal_snow_temp_min: -5.0
+
+  # Precipitation thresholds (mm/hour)
+  min_precipitation_rate: 0.1
+  heavy_snow_rate: 2.0
+
+  # Confidence adjustments
+  temp_confidence_weight: 0.4
+  precip_confidence_weight: 0.4
+  radar_confidence_weight: 0.2
+
+# Nowcasting parameters
+nowcasting:
+  # Time windows (hours)
+  short_term_hours: 2
+  medium_term_hours: 6
+
+  # Algorithm weights
+  persistence_weight: 0.3
+  model_weight: 0.5
+  observation_weight: 0.2
+
+# Logging configuration
+logging:
+  level: "INFO"
+  event_log_dir: "data/events"
+  retain_days: 30
+
+# Dashboard settings
+dashboard:
+  refresh_interval_seconds: 300
+  map_zoom_default: 10
+  show_confidence_intervals: true
