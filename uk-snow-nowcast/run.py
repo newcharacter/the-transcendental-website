@@ -17,11 +17,25 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
+def load_config():
+    """Load config from yaml."""
+    import yaml
+    config_path = Path(__file__).parent / "config" / "settings.yaml"
+    if config_path.exists():
+        with open(config_path) as f:
+            return yaml.safe_load(f)
+    return {}
+
+
 async def test_data_sources():
     """Test all data sources are working."""
     from src.models.weather_data import Location
     from src.data_sources.open_meteo import OpenMeteoSource
     from src.data_sources.environment_agency import EnvironmentAgencySource
+    from src.data_sources.met_office_datahub import MetOfficeDataHubSource, MetOfficeDataHubConfig
+
+    config = load_config()
+    ds_config = config.get("data_sources", {})
 
     # Default location (Canterbury, Kent)
     location = Location(
@@ -69,6 +83,32 @@ async def test_data_sources():
     except Exception as e:
         print(f"  Error: {e}")
 
+    # Test Met Office DataHub
+    mo_config = ds_config.get("met_office_datahub", {})
+    print("\n[Met Office DataHub]")
+    if mo_config.get("enabled") and mo_config.get("api_key"):
+        try:
+            datahub_config = MetOfficeDataHubConfig(
+                base_url=mo_config.get("base_url", "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"),
+                api_key=mo_config["api_key"],
+            )
+            source = MetOfficeDataHubSource(datahub_config)
+            healthy = await source.health_check()
+            print(f"  Health check: {'✓' if healthy else '✗'}")
+
+            if healthy:
+                forecasts = await source.fetch_forecast(location, hours=6)
+                print(f"  Forecast hours: {len(forecasts)}")
+                if forecasts:
+                    print(f"    Temperature: {forecasts[0].temperature_c}°C")
+                    print(f"    Precipitation: {forecasts[0].precipitation_type.value}")
+                    if forecasts[0].snowfall_cm:
+                        print(f"    Snowfall: {forecasts[0].snowfall_cm} cm")
+        except Exception as e:
+            print(f"  Error: {e}")
+    else:
+        print("  Not configured (set api_key in config/settings.yaml)")
+
     print("\n" + "=" * 50)
     print("Test complete!")
 
@@ -78,7 +118,11 @@ async def fetch_and_display():
     from src.models.weather_data import Location
     from src.data_sources.open_meteo import OpenMeteoSource
     from src.data_sources.environment_agency import EnvironmentAgencySource
+    from src.data_sources.met_office_datahub import MetOfficeDataHubSource, MetOfficeDataHubConfig
     from src.nowcasting.snow_algorithms import SnowNowcaster
+
+    config = load_config()
+    ds_config = config.get("data_sources", {})
 
     location = Location(
         latitude=51.2787,
@@ -109,6 +153,21 @@ async def fetch_and_display():
         observations.extend(obs)
     except Exception as e:
         print(f"Warning: Environment Agency failed: {e}")
+
+    # Met Office DataHub
+    mo_config = ds_config.get("met_office_datahub", {})
+    if mo_config.get("enabled") and mo_config.get("api_key"):
+        try:
+            datahub_config = MetOfficeDataHubConfig(
+                base_url=mo_config.get("base_url", "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"),
+                api_key=mo_config["api_key"],
+            )
+            datahub = MetOfficeDataHubSource(datahub_config)
+            fc = await datahub.fetch_forecast(location, hours=6)
+            forecasts.extend(fc)
+            print("Met Office DataHub: ✓")
+        except Exception as e:
+            print(f"Warning: Met Office DataHub failed: {e}")
 
     # Generate nowcast
     nowcaster = SnowNowcaster()

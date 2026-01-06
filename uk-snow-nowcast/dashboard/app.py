@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models.weather_data import Location, NowcastResult
 from src.data_sources.open_meteo import OpenMeteoSource
 from src.data_sources.environment_agency import EnvironmentAgencySource
+from src.data_sources.met_office_datahub import MetOfficeDataHubSource, MetOfficeDataHubConfig
 from src.nowcasting.snow_algorithms import SnowNowcaster, NowcastConfig
 from src.utils.logging import EventLogger
 
@@ -53,7 +54,7 @@ def get_location_from_config(config: dict) -> Location:
     )
 
 
-async def fetch_all_data(location: Location) -> dict:
+async def fetch_all_data(location: Location, config: dict) -> dict:
     """Fetch data from all available sources."""
     results = {
         "observations": [],
@@ -61,6 +62,8 @@ async def fetch_all_data(location: Location) -> dict:
         "sources_available": [],
         "sources_failed": [],
     }
+
+    ds_config = config.get("data_sources", {})
 
     # Open-Meteo (always available, no key needed)
     try:
@@ -81,6 +84,22 @@ async def fetch_all_data(location: Location) -> dict:
         results["sources_available"].append("environment_agency")
     except Exception as e:
         results["sources_failed"].append(f"environment_agency: {str(e)}")
+
+    # Met Office DataHub (if configured)
+    mo_config = ds_config.get("met_office_datahub", {})
+    if mo_config.get("enabled") and mo_config.get("api_key"):
+        try:
+            datahub_config = MetOfficeDataHubConfig(
+                base_url=mo_config.get("base_url", "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"),
+                api_key=mo_config["api_key"],
+                update_interval_minutes=mo_config.get("update_interval_minutes", 60),
+            )
+            datahub = MetOfficeDataHubSource(datahub_config)
+            forecasts = await datahub.fetch_forecast(location, hours=24)
+            results["forecasts"].extend(forecasts)
+            results["sources_available"].append("met_office_datahub")
+        except Exception as e:
+            results["sources_failed"].append(f"met_office_datahub: {str(e)}")
 
     return results
 
@@ -353,7 +372,7 @@ def main():
     # Fetch data
     with st.spinner("Fetching weather data..."):
         try:
-            fetch_results = run_async(fetch_all_data(location))
+            fetch_results = run_async(fetch_all_data(location, config))
         except Exception as e:
             st.error(f"Error fetching data: {e}")
             return
@@ -387,9 +406,9 @@ def main():
 
     # Footer
     st.divider()
+    sources_str = ", ".join(nowcast.sources_available) if nowcast.sources_available else "None"
     st.caption(
-        "Data sources: Open-Meteo, Environment Agency | "
-        "Powered by Met Office data (where available) | "
+        f"Data sources: {sources_str} | "
         f"Generated: {nowcast.generated_at.strftime('%Y-%m-%d %H:%M UTC')}"
     )
 
