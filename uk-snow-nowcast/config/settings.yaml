@@ -1,0 +1,69 @@
+# UK Snow Nowcast Configuration
+# All tuneable parameters - no hardcoded values in code
+
+location:
+  # Default location (Kent)
+  latitude: 51.2787
+  longitude: 1.0803
+  name: "Canterbury, Kent"
+
+# Data source configuration
+data_sources:
+  open_meteo:
+    enabled: true
+    base_url: "https://api.open-meteo.com/v1/forecast"
+    update_interval_minutes: 15
+    # No API key required
+
+  environment_agency:
+    enabled: true
+    base_url: "https://environment.data.gov.uk/flood-monitoring"
+    update_interval_minutes: 15
+    # No API key required
+    search_radius_km: 50
+
+  met_office_datahub:
+    enabled: false  # Requires registration - set API key below to enable
+    base_url: "https://data.hub.api.metoffice.gov.uk/sitespecific/v0"
+    api_key: ""  # Get from https://datahub.metoffice.gov.uk/
+    update_interval_minutes: 60
+    # Free tier: 360 calls/day
+
+# Snow detection thresholds
+snow_detection:
+  # Temperature thresholds (Celsius)
+  max_temp_for_snow: 2.0
+  optimal_snow_temp_max: 0.5
+  optimal_snow_temp_min: -5.0
+
+  # Precipitation thresholds (mm/hour)
+  min_precipitation_rate: 0.1
+  heavy_snow_rate: 2.0
+
+  # Confidence adjustments
+  temp_confidence_weight: 0.4
+  precip_confidence_weight: 0.4
+  radar_confidence_weight: 0.2
+
+# Nowcasting parameters
+nowcasting:
+  # Time windows (hours)
+  short_term_hours: 2
+  medium_term_hours: 6
+
+  # Algorithm weights
+  persistence_weight: 0.3
+  model_weight: 0.5
+  observation_weight: 0.2
+
+# Logging configuration
+logging:
+  level: "INFO"
+  event_log_dir: "data/events"
+  retain_days: 30
+
+# Dashboard settings
+dashboard:
+  refresh_interval_seconds: 300
+  map_zoom_default: 10
+  show_confidence_intervals: true
