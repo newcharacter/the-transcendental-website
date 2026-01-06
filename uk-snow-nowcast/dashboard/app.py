@@ -25,6 +25,7 @@ from src.data_sources.environment_agency import EnvironmentAgencySource
 from src.data_sources.met_office_datahub import MetOfficeDataHubSource, MetOfficeDataHubConfig
 from src.nowcasting.snow_algorithms import SnowNowcaster, NowcastConfig
 from src.utils.logging import EventLogger
+from src.validation.public_scraper import PublicWeatherScraper
 
 
 # Page config
@@ -290,6 +291,48 @@ def render_data_sources(nowcast: NowcastResult, fetch_results: dict):
             st.write("None")
 
 
+def render_community_reports():
+    """Render community snow reports from public sources."""
+    st.subheader("Community Reports")
+
+    with st.expander("View latest snow reports from forums & warnings", expanded=False):
+        try:
+            scraper = PublicWeatherScraper()
+            reports = run_async(scraper.get_all_reports())
+
+            if not reports:
+                st.info("No recent snow reports found")
+                return
+
+            # Group by source
+            by_source = {}
+            for r in reports:
+                if r.source not in by_source:
+                    by_source[r.source] = []
+                by_source[r.source].append(r)
+
+            for source, source_reports in by_source.items():
+                source_name = {
+                    "met_office_warning": "Met Office Warnings",
+                    "reddit_ukweather": "Reddit r/ukweather",
+                    "netweather_forum": "NetWeather Forum",
+                }.get(source, source)
+
+                st.write(f"**{source_name}** ({len(source_reports)} reports)")
+
+                for r in source_reports[:5]:  # Show max 5 per source
+                    conf_pct = int(r.confidence * 100)
+                    acc_str = f" | {r.accumulation_cm:.1f}cm" if r.accumulation_cm else ""
+                    st.write(f"- {r.location_text}{acc_str} (conf: {conf_pct}%)")
+                    st.caption(f"  {r.content[:100]}...")
+
+                if len(source_reports) > 5:
+                    st.caption(f"  ...and {len(source_reports) - 5} more")
+
+        except Exception as e:
+            st.warning(f"Could not fetch community reports: {e}")
+
+
 def render_sidebar(config: dict) -> Location:
     """Render sidebar with settings."""
     st.sidebar.title("Settings")
@@ -403,6 +446,10 @@ def main():
     st.divider()
 
     render_data_sources(nowcast, fetch_results)
+
+    # Community reports section
+    st.divider()
+    render_community_reports()
 
     # Footer
     st.divider()
